@@ -146,7 +146,8 @@ class LinkedInPoster:
     
     def post_to_linkedin(self, post_data: Dict) -> Optional[str]:
         """
-        Posta no LinkedIn usando API legacy /v2/shares (mais compatível)
+        Posta no LinkedIn usando API UGC (/v2/ugcPosts)
+        Usa formato de author que funcionou: urn:li:person:l_{user_id}
         
         Args:
             post_data: Dicionário com dados do post (title, url, commentary, hashtags, visibility)
@@ -160,10 +161,14 @@ class LinkedInPoster:
         # Busca user ID via userinfo (OpenID)
         user_id = self.get_user_id()
         
+        # Formato de author que funcionou: urn:li:person:l_{user_id}
+        author = f"urn:li:person:l_{user_id}"
+        
         # Constrói o post
-        url = "https://api.linkedin.com/v2/shares"
+        url = "https://api.linkedin.com/v2/ugcPosts"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
+            "X-Restli-Protocol-Version": "2.0.0",
             "Content-Type": "application/json"
         }
         
@@ -176,26 +181,30 @@ class LinkedInPoster:
         # Texto completo do post
         full_text = f"{commentary}\n\n{post_url}\n\n{hashtags}"
         
-        # Payload da requisição (API /v2/shares)
+        # Payload da requisição (API UGC)
         payload = {
-            "owner": f"urn:li:person:{user_id}",
-            "text": {
-                "text": full_text
+            "author": author,
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {
+                        "text": full_text
+                    },
+                    "shareMediaCategory": "NONE"
+                }
             },
-            "distribution": {
-                "linkedInDistributionTarget": {}
+            "visibility": {
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
             }
         }
         
         try:
-            self.logger.info(f"Postando no LinkedIn: {title}")
-            self.logger.debug(f"Payload: {payload}")
+            self.logger.info(f"Postando no LinkedIn com author: {author}")
             response = requests.post(url, headers=headers, json=payload)
             
             # Log detalhado em caso de erro
             if response.status_code != 201:
                 self.logger.error(f"Status Code: {response.status_code}")
-                self.logger.error(f"Response Headers: {dict(response.headers)}")
                 self.logger.error(f"Response Body: {response.text}")
             
             response.raise_for_status()

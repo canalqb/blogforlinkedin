@@ -11,8 +11,8 @@ linkedin:
   client_id: "YOUR_LINKEDIN_CLIENT_ID"  # Client ID do LinkedIn
   client_secret: "YOUR_LINKEDIN_CLIENT_SECRET"  # Client Secret do LinkedIn
   redirect_uri: "YOUR_REDIRECT_URI"  # URL de redirecionamento OAuth
-  access_token: "YOUR_LINKEDIN_ACCESS_TOKEN"  # Access Token (opcional - será gerado automaticamente)
-  refresh_token: "YOUR_LINKEDIN_REFRESH_TOKEN"  # Refresh Token (opcional - será gerado automaticamente)
+  access_token: "YOUR_LINKEDIN_ACCESS_TOKEN"  # Access Token (será preenchido pelo GitHub Actions)
+  refresh_token: "YOUR_LINKEDIN_REFRESH_TOKEN"  # Refresh Token (será preenchido pelo GitHub Actions)
 
 # Configuração de Postagem
 posting:
