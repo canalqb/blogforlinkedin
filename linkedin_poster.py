@@ -22,6 +22,11 @@ class LinkedInPoster:
         self.access_token = self.config['linkedin'].get('access_token', '')
         self.refresh_token = self.config['linkedin'].get('refresh_token', '')
         self._setup_logging()
+        
+        # Log das credenciais (sem valores sensíveis)
+        self.logger.info(f"Client ID configurado: {'Sim' if self.client_id else 'Não'}")
+        self.logger.info(f"Access Token configurado: {'Sim' if self.access_token else 'NÃO - ERRO'}")
+        self.logger.info(f"Refresh Token configurado: {'Sim' if self.refresh_token else 'Não'}")
     
     def _load_config(self, config_file: str) -> Dict:
         """Carrega configuração do arquivo YAML"""
