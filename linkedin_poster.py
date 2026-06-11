@@ -88,25 +88,29 @@ class LinkedInPoster:
     
     def get_person_urn(self) -> str:
         """
-        Busca o URN da pessoa autenticada
+        Busca o Member URN do usuário autenticado via LinkedIn API
+        LinkedIn exige urn:li:member:<ID numérico> para UGC posts
         
         Returns:
-            URN da pessoa (ex: urn:li:person:ABC123)
+            Member URN no formato urn:li:member:{id}
         """
-        url = "https://api.linkedin.com/v2/userinfo"
-        headers = {'Authorization': f'Bearer {self.access_token}'}
+        url = "https://api.linkedin.com/v2/me"
+        headers = {
+            "Authorization": f"Bearer {self.access_token}",
+            "X-Restli-Protocol-Version": "2.0.0"
+        }
         
         try:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
             
-            user_info = response.json()
-            sub = user_info.get('sub', '')
+            data = response.json()
+            member_id = data["id"]
             
-            # Formato esperado: l_ABC123 -> urn:li:person:ABC123 (sem prefixo l_)
-            person_urn = f"urn:li:person:{sub.replace('l_', '')}"
+            # Formato exigido pela UGC API: urn:li:member:{ID numérico}
+            person_urn = f"urn:li:member:{member_id}"
             
-            self.logger.info(f"Person URN: {person_urn}")
+            self.logger.info(f"Person URN correto: {person_urn}")
             return person_urn
             
         except requests.exceptions.RequestException as e:
@@ -184,16 +188,19 @@ class LinkedInPoster:
             
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Erro ao postar no LinkedIn: {e}")
-            if response.status_code == 401:
-                self.logger.warning("Token expirado, tentando renovar...")
-                self.refresh_access_token()
-                # Tenta novamente
-                headers['Authorization'] = f'Bearer {self.access_token}'
-                response = requests.post(url, headers=headers, json=payload)
-                response.raise_for_status()
-                post_id = response.headers.get('X-RestLi-Id')
-                self.logger.info(f"Post criado com sucesso após renovação! ID: {post_id}")
-                return post_id
+            
+            # Retry seguro apenas se token expirou (401)
+            if hasattr(e, "response") and e.response is not None:
+                if e.response.status_code == 401:
+                    self.logger.warning("Token expirado. Renovando...")
+                    self.refresh_access_token()
+                    # Tenta novamente
+                    headers['Authorization'] = f'Bearer {self.access_token}'
+                    response = requests.post(url, headers=headers, json=payload)
+                    response.raise_for_status()
+                    post_id = response.headers.get('X-RestLi-Id')
+                    self.logger.info(f"Post criado com sucesso após renovação! ID: {post_id}")
+                    return post_id
             raise
 
 
