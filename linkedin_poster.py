@@ -92,7 +92,7 @@ class LinkedInPoster:
         Se falhar (403), usa fallback via OAuth sub (/v2/userinfo).
         
         Returns:
-            Member URN no formato urn:li:member:{id}
+            Person URN no formato urn:li:person:{id}
         """
         headers = {
             "Authorization": f"Bearer {self.access_token}",
@@ -104,8 +104,8 @@ class LinkedInPoster:
             response = requests.get("https://api.linkedin.com/v2/me", headers=headers)
             
             if response.status_code == 200:
-                member_id = response.json()["id"]
-                urn = f"urn:li:member:{member_id}"
+                person_id = response.json()["id"]
+                urn = f"urn:li:person:{person_id}"
                 self.logger.info(f"URN via /me: {urn}")
                 return urn
             
@@ -124,7 +124,8 @@ class LinkedInPoster:
             # Remove prefixos e limpa o ID
             cleaned = sub.replace("l_", "").replace("urn:li:person:", "")
             
-            urn = f"urn:li:member:{cleaned}"
+            # Tenta como person (pode funcionar em alguns casos)
+            urn = f"urn:li:person:{cleaned}"
             
             self.logger.info(f"URN via fallback: {urn}")
             return urn
