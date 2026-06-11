@@ -88,35 +88,40 @@ class LinkedInPoster:
     
     def get_person_urn(self) -> str:
         """
-        Busca o Person URN do usuário autenticado via /v2/me endpoint.
-        Conforme exemplo oficial do LinkedIn API Python Client.
-        
-        Requer scope: r_liteprofile
+        Usa OpenID Connect (/v2/userinfo) para obter identidade.
+        Compatível com scopes: openid, profile (sem r_liteprofile)
         
         Returns:
-            Person URN no formato urn:li:person:{id}
+            Member URN no formato urn:li:member:{sub}
         """
-        url = "https://api.linkedin.com/v2/me"
+        url = "https://api.linkedin.com/v2/userinfo"
         headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "X-Restli-Protocol-Version": "2.0.0"
+            "Authorization": f"Bearer {self.access_token}"
         }
+        
+        self.logger.info("Buscando identidade via userinfo...")
         
         try:
             response = requests.get(url, headers=headers)
-            response.raise_for_status()
             
-            person_id = response.json()["id"]
+            if response.status_code != 200:
+                self.logger.error(f"userinfo falhou: {response.status_code} {response.text}")
+                raise RuntimeError("Não foi possível obter userinfo (token inválido ou scope faltando)")
             
-            # Formato conforme exemplo oficial: urn:li:person:{id}
-            person_urn = f"urn:li:person:{person_id}"
+            data = response.json()
+            sub = data.get("sub")
             
-            self.logger.info(f"Person URN obtido: {person_urn}")
-            return person_urn
+            if not sub:
+                raise RuntimeError("Campo 'sub' não encontrado no userinfo")
+            
+            # URN correto para UGC API usando sub do OpenID
+            urn = f"urn:li:member:{sub}"
+            
+            self.logger.info(f"URN gerado: {urn}")
+            return urn
             
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Erro ao buscar person URN via /me: {e}")
-            self.logger.error("Isso indica que o token não tem o scope r_liteprofile necessário")
+            self.logger.error(f"Erro ao buscar userinfo: {e}")
             raise
     
     def post_to_linkedin(self, post_data: Dict) -> Optional[str]:
