@@ -150,19 +150,7 @@ class LinkedInPoster:
                     "shareCommentary": {
                         "text": full_text
                     },
-                    "shareMediaCategory": "ARTICLE",
-                    "media": [
-                        {
-                            "status": "READY",
-                            "description": {
-                                "text": title
-                            },
-                            "originalUrl": post_url,
-                            "title": {
-                                "text": title
-                            }
-                        }
-                    ]
+                    "shareMediaCategory": "NONE"
                 }
             },
             "visibility": {
