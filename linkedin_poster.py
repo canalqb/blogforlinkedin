@@ -134,7 +134,7 @@ class LinkedInPoster:
         headers = {
             'Authorization': f'Bearer {self.access_token}',
             'X-Restli-Protocol-Version': '2.0.0',
-            'Linkedin-Version': '202505',
+            'Linkedin-Version': '202603',
             'Content-Type': 'application/json'
         }
         
