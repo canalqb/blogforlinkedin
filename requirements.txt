@@ -1,0 +1,5 @@
+# Dependências do Sistema de Automação Blogger → LinkedIn
+# @CanalQb
+
+requests>=2.31.0
+pyyaml>=6.0.1

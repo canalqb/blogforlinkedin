@@ -1,0 +1,36 @@
+# ===== CONFIGURAÇÃO DO SISTEMA DE AUTOMAÇÃO BLOGGER → LINKEDIN =====
+# @CanalQb - Sistema de Postagem Automática
+
+# Configuração do Blogger
+blogger:
+  blog_id: "YOUR_BLOG_ID"  # ID do blog (ex: 1234567890)
+  api_key: "YOUR_BLOGGER_API_KEY"  # API Key do Google Blogger API
+
+# Configuração do LinkedIn
+linkedin:
+  client_id: "YOUR_LINKEDIN_CLIENT_ID"  # Client ID do LinkedIn
+  client_secret: "YOUR_LINKEDIN_CLIENT_SECRET"  # Client Secret do LinkedIn
+  redirect_uri: "YOUR_REDIRECT_URI"  # URL de redirecionamento OAuth
+  access_token: "YOUR_LINKEDIN_ACCESS_TOKEN"  # Access Token (opcional - será gerado automaticamente)
+  refresh_token: "YOUR_LINKEDIN_REFRESH_TOKEN"  # Refresh Token (opcional - será gerado automaticamente)
+
+# Configuração de Postagem
+posting:
+  frequency: "daily"  # daily, weekly, monthly
+  time: "09:00"  # Horário de postagem (UTC)
+  timezone: "America/Sao_Paulo"  # Fuso horário
+  max_posts_per_day: 1  # Máximo de posts por dia
+  post_order: "oldest_first"  # oldest_first, newest_first
+  skip_published: true  # Pular posts já publicados no LinkedIn
+  
+# Template de Postagem
+post_template:
+  headline: "🚀 Novo post no @CanalQb!"
+  commentary: "Acabei de publicar um novo conteúdo sobre {title}. Confira agora!"
+  hashtags: "#tecnologia #automacao #desenvolvimento #CanalQb"
+  visibility: "PUBLIC"  # PUBLIC, CONNECTIONS
+
+# Configuração de Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "automation.log"

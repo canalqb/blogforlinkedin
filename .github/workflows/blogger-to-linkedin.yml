@@ -1,0 +1,82 @@
+name: Blogger to LinkedIn Automation
+
+on:
+  schedule:
+    # Executa diariamente às 09:00 UTC (06:00 BRT)
+    - cron: '0 9 * * *'
+  workflow_dispatch:  # Permite execução manual
+
+jobs:
+  post-to-linkedin:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Create config.yml from secrets
+        run: |
+          cat > config.yml << EOF
+          blogger:
+            blog_id: "${{ secrets.BLOGGER_BLOG_ID }}"
+            api_key: "${{ secrets.BLOGGER_API_KEY }}"
+          
+          linkedin:
+            client_id: "${{ secrets.LINKEDIN_CLIENT_ID }}"
+            client_secret: "${{ secrets.LINKEDIN_CLIENT_SECRET }}"
+            redirect_uri: "${{ secrets.LINKEDIN_REDIRECT_URI }}"
+            access_token: "${{ secrets.LINKEDIN_ACCESS_TOKEN }}"
+            refresh_token: "${{ secrets.LINKEDIN_REFRESH_TOKEN }}"
+          
+          posting:
+            frequency: "daily"
+            time: "09:00"
+            timezone: "America/Sao_Paulo"
+            max_posts_per_day: 1
+            post_order: "oldest_first"
+            skip_published: true
+          
+          post_template:
+            headline: "🚀 Novo post no @CanalQb!"
+            commentary: "Acabei de publicar um novo conteúdo sobre {title}. Confira agora!"
+            hashtags: "#tecnologia #automacao #desenvolvimento #CanalQb"
+            visibility: "PUBLIC"
+          
+          logging:
+            level: "INFO"
+            file: "automation.log"
+          EOF
+      
+      - name: Download published_posts.json from artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: published-posts
+          path: .
+        continue-on-error: true
+      
+      - name: Run automation
+        run: python main.py
+      
+      - name: Upload published_posts.json as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-posts
+          path: published_posts.json
+        if: always()
+      
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-logs
+          path: automation.log
+        if: always()
