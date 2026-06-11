@@ -103,8 +103,8 @@ class LinkedInPoster:
             user_info = response.json()
             sub = user_info.get('sub', '')
             
-            # Formato esperado: l_ABC123 -> urn:li:member:ABC123
-            person_urn = f"urn:li:member:{sub.replace('l_', '')}"
+            # Formato esperado: usar sub completo (l_ABC123) -> urn:li:person:l_ABC123
+            person_urn = f"urn:li:person:{sub}"
             
             self.logger.info(f"Person URN: {person_urn}")
             return person_urn
