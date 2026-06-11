@@ -160,7 +160,15 @@ class LinkedInPoster:
         
         try:
             self.logger.info(f"Postando no LinkedIn: {title}")
+            self.logger.debug(f"Payload: {payload}")
             response = requests.post(url, headers=headers, json=payload)
+            
+            # Log detalhado em caso de erro
+            if response.status_code != 201:
+                self.logger.error(f"Status Code: {response.status_code}")
+                self.logger.error(f"Response Headers: {dict(response.headers)}")
+                self.logger.error(f"Response Body: {response.text}")
+            
             response.raise_for_status()
             
             # Retorna o ID do post criado
