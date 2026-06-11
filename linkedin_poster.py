@@ -88,51 +88,36 @@ class LinkedInPoster:
     
     def get_person_urn(self) -> str:
         """
-        Tenta obter identidade real via /v2/me.
-        Se falhar (403), usa fallback via OAuth sub (/v2/userinfo).
+        Busca o Person URN do usuário autenticado via /v2/me endpoint.
+        Conforme exemplo oficial do LinkedIn API Python Client.
+        
+        Requer scope: r_liteprofile
         
         Returns:
             Person URN no formato urn:li:person:{id}
         """
+        url = "https://api.linkedin.com/v2/me"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "X-Restli-Protocol-Version": "2.0.0"
         }
         
-        # 1. tentativa padrão via /v2/me
         try:
-            response = requests.get("https://api.linkedin.com/v2/me", headers=headers)
-            
-            if response.status_code == 200:
-                person_id = response.json()["id"]
-                urn = f"urn:li:person:{person_id}"
-                self.logger.info(f"URN via /me: {urn}")
-                return urn
-            
-            self.logger.warning(f"/me falhou: {response.status_code} -> usando fallback")
-            
-        except Exception as e:
-            self.logger.warning(f"/me erro: {e} -> usando fallback")
-        
-        # 2. fallback OAuth sub via /v2/userinfo
-        try:
-            response = requests.get("https://api.linkedin.com/v2/userinfo", headers=headers)
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
             
-            sub = response.json().get("sub", "")
+            person_id = response.json()["id"]
             
-            # Remove prefixos e limpa o ID
-            cleaned = sub.replace("l_", "").replace("urn:li:person:", "")
+            # Formato conforme exemplo oficial: urn:li:person:{id}
+            person_urn = f"urn:li:person:{person_id}"
             
-            # Tenta como person (pode funcionar em alguns casos)
-            urn = f"urn:li:person:{cleaned}"
+            self.logger.info(f"Person URN obtido: {person_urn}")
+            return person_urn
             
-            self.logger.info(f"URN via fallback: {urn}")
-            return urn
-            
-        except Exception as e:
-            self.logger.error("Falha total ao obter identidade")
-            raise RuntimeError("Não foi possível obter URN do usuário") from e
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Erro ao buscar person URN via /me: {e}")
+            self.logger.error("Isso indica que o token não tem o scope r_liteprofile necessário")
+            raise
     
     def post_to_linkedin(self, post_data: Dict) -> Optional[str]:
         """
