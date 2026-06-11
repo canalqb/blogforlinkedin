@@ -115,7 +115,7 @@ class LinkedInPoster:
     
     def post_to_linkedin(self, post_data: Dict) -> Optional[str]:
         """
-        Posta no LinkedIn usando a nova Posts API (substitui UGC API)
+        Posta no LinkedIn usando a API UGC (mais estável)
         
         Args:
             post_data: Dicionário com dados do post (title, url, commentary, hashtags, visibility)
@@ -130,12 +130,11 @@ class LinkedInPoster:
         person_urn = self.get_person_urn()
         
         # Constrói o post
-        url = "https://api.linkedin.com/rest/posts"
+        url = "https://api.linkedin.com/v2/ugcPosts"
         headers = {
-            'Authorization': f'Bearer {self.access_token}',
-            'X-Restli-Protocol-Version': '2.0.0',
-            'Linkedin-Version': '202603',
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {self.access_token}",
+            "X-Restli-Protocol-Version": "2.0.0",
+            "Content-Type": "application/json"
         }
         
         # Formata o texto do post
@@ -147,18 +146,21 @@ class LinkedInPoster:
         # Texto completo do post
         full_text = f"{commentary}\n\n{post_url}\n\n{hashtags}"
         
-        # Payload da requisição (nova API Posts)
+        # Payload da requisição (API UGC)
         payload = {
             "author": person_urn,
-            "commentary": full_text,
-            "visibility": post_data.get('visibility', 'PUBLIC'),
-            "distribution": {
-                "feedDistribution": "MAIN_FEED",
-                "targetEntities": [],
-                "thirdPartyDistributionChannels": []
-            },
             "lifecycleState": "PUBLISHED",
-            "isReshareDisabledByAuthor": False
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {
+                        "text": full_text
+                    },
+                    "shareMediaCategory": "NONE"
+                }
+            },
+            "visibility": {
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+            }
         }
         
         try:
