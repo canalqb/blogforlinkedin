@@ -103,8 +103,8 @@ class LinkedInPoster:
             user_info = response.json()
             sub = user_info.get('sub', '')
             
-            # Formato esperado: usar sub completo (l_ABC123) -> urn:li:person:l_ABC123
-            person_urn = f"urn:li:person:{sub}"
+            # Formato esperado: l_ABC123 -> urn:li:person:ABC123 (sem prefixo l_)
+            person_urn = f"urn:li:person:{sub.replace('l_', '')}"
             
             self.logger.info(f"Person URN: {person_urn}")
             return person_urn
@@ -115,7 +115,7 @@ class LinkedInPoster:
     
     def post_to_linkedin(self, post_data: Dict) -> Optional[str]:
         """
-        Posta no LinkedIn usando a API UGC
+        Posta no LinkedIn usando a nova Posts API (substitui UGC API)
         
         Args:
             post_data: Dicionário com dados do post (title, url, commentary, hashtags, visibility)
@@ -130,10 +130,11 @@ class LinkedInPoster:
         person_urn = self.get_person_urn()
         
         # Constrói o post
-        url = "https://api.linkedin.com/v2/ugcPosts"
+        url = "https://api.linkedin.com/rest/posts"
         headers = {
             'Authorization': f'Bearer {self.access_token}',
             'X-Restli-Protocol-Version': '2.0.0',
+            'Linkedin-Version': '202401',
             'Content-Type': 'application/json'
         }
         
@@ -146,21 +147,18 @@ class LinkedInPoster:
         # Texto completo do post
         full_text = f"{commentary}\n\n{post_url}\n\n{hashtags}"
         
-        # Payload da requisição
+        # Payload da requisição (nova API Posts)
         payload = {
             "author": person_urn,
-            "lifecycleState": "PUBLISHED",
-            "specificContent": {
-                "com.linkedin.ugc.ShareContent": {
-                    "shareCommentary": {
-                        "text": full_text
-                    },
-                    "shareMediaCategory": "NONE"
-                }
+            "commentary": full_text,
+            "visibility": post_data.get('visibility', 'PUBLIC'),
+            "distribution": {
+                "feedDistribution": "MAIN_FEED",
+                "targetEntities": [],
+                "thirdPartyDistributionChannels": []
             },
-            "visibility": {
-                "com.linkedin.ugc.MemberNetworkVisibility": post_data.get('visibility', 'PUBLIC')
-            }
+            "lifecycleState": "PUBLISHED",
+            "isReshareDisabledByAuthor": False
         }
         
         try:
