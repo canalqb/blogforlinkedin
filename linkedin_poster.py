@@ -86,6 +86,26 @@ class LinkedInPoster:
             self.logger.error(f"Erro ao renovar token: {e}")
             raise
     
+    def _clean_sub(self, sub: str) -> str:
+        """
+        Remove prefixos inválidos do sub do LinkedIn
+        """
+        if not sub:
+            raise ValueError("sub vazio")
+        
+        # Remove prefixos que quebram a UGC API
+        cleaned = (
+            sub.replace("l_", "")
+               .replace("urn:li:person:", "")
+               .replace("urn:li:member:", "")
+        )
+        
+        # Validação forte
+        if len(cleaned) < 5:
+            raise ValueError(f"sub inválido após limpeza: {sub} -> {cleaned}")
+        
+        return cleaned
+    
     def get_person_urn(self) -> str:
         """
         Usa OpenID Connect (/v2/userinfo) para obter identidade.
@@ -114,8 +134,11 @@ class LinkedInPoster:
             if not sub:
                 raise RuntimeError("Campo 'sub' não encontrado no userinfo")
             
-            # URN correto para UGC API usando sub do OpenID
-            urn = f"urn:li:member:{sub}"
+            # Limpa o sub para remover prefixos inválidos
+            cleaned_sub = self._clean_sub(sub)
+            
+            # URN correto para UGC API usando sub limpo do OpenID
+            urn = f"urn:li:member:{cleaned_sub}"
             
             self.logger.info(f"URN gerado: {urn}")
             return urn
