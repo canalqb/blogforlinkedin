@@ -106,20 +106,20 @@ class LinkedInPoster:
         
         return cleaned
     
-    def get_person_urn(self) -> str:
+    def get_user_id(self) -> str:
         """
-        Usa OpenID Connect (/v2/userinfo) para obter identidade.
+        Usa OpenID Connect (/v2/userinfo) para obter user ID.
         Compatível com scopes: openid, profile (sem r_liteprofile)
         
         Returns:
-            Member URN no formato urn:li:member:{sub}
+            User ID (sub limpo)
         """
         url = "https://api.linkedin.com/v2/userinfo"
         headers = {
             "Authorization": f"Bearer {self.access_token}"
         }
         
-        self.logger.info("Buscando identidade via userinfo...")
+        self.logger.info("Buscando user ID via userinfo...")
         
         try:
             response = requests.get(url, headers=headers)
@@ -137,11 +137,8 @@ class LinkedInPoster:
             # Limpa o sub para remover prefixos inválidos
             cleaned_sub = self._clean_sub(sub)
             
-            # URN correto para UGC API usando sub limpo do OpenID
-            urn = f"urn:li:member:{cleaned_sub}"
-            
-            self.logger.info(f"URN gerado: {urn}")
-            return urn
+            self.logger.info(f"User ID obtido: {cleaned_sub}")
+            return cleaned_sub
             
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Erro ao buscar userinfo: {e}")
@@ -149,7 +146,7 @@ class LinkedInPoster:
     
     def post_to_linkedin(self, post_data: Dict) -> Optional[str]:
         """
-        Posta no LinkedIn usando a API UGC (mais estável)
+        Posta no LinkedIn usando API legacy /v2/shares (mais compatível)
         
         Args:
             post_data: Dicionário com dados do post (title, url, commentary, hashtags, visibility)
@@ -160,14 +157,13 @@ class LinkedInPoster:
         if not self.access_token:
             raise ValueError("Access token não configurado")
         
-        # Busca Person URN
-        person_urn = self.get_person_urn()
+        # Busca user ID via userinfo (OpenID)
+        user_id = self.get_user_id()
         
         # Constrói o post
-        url = "https://api.linkedin.com/v2/ugcPosts"
+        url = "https://api.linkedin.com/v2/shares"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
-            "X-Restli-Protocol-Version": "2.0.0",
             "Content-Type": "application/json"
         }
         
@@ -180,20 +176,14 @@ class LinkedInPoster:
         # Texto completo do post
         full_text = f"{commentary}\n\n{post_url}\n\n{hashtags}"
         
-        # Payload da requisição (API UGC)
+        # Payload da requisição (API /v2/shares)
         payload = {
-            "author": person_urn,
-            "lifecycleState": "PUBLISHED",
-            "specificContent": {
-                "com.linkedin.ugc.ShareContent": {
-                    "shareCommentary": {
-                        "text": full_text
-                    },
-                    "shareMediaCategory": "NONE"
-                }
+            "owner": f"urn:li:person:{user_id}",
+            "text": {
+                "text": full_text
             },
-            "visibility": {
-                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+            "distribution": {
+                "linkedInDistributionTarget": {}
             }
         }
         
