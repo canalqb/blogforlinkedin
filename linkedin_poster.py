@@ -88,34 +88,50 @@ class LinkedInPoster:
     
     def get_person_urn(self) -> str:
         """
-        Busca o Member URN do usuário autenticado via LinkedIn API
-        LinkedIn exige urn:li:member:<ID numérico> para UGC posts
+        Tenta obter identidade real via /v2/me.
+        Se falhar (403), usa fallback via OAuth sub (/v2/userinfo).
         
         Returns:
             Member URN no formato urn:li:member:{id}
         """
-        url = "https://api.linkedin.com/v2/me"
         headers = {
             "Authorization": f"Bearer {self.access_token}",
             "X-Restli-Protocol-Version": "2.0.0"
         }
         
+        # 1. tentativa padrão via /v2/me
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get("https://api.linkedin.com/v2/me", headers=headers)
+            
+            if response.status_code == 200:
+                member_id = response.json()["id"]
+                urn = f"urn:li:member:{member_id}"
+                self.logger.info(f"URN via /me: {urn}")
+                return urn
+            
+            self.logger.warning(f"/me falhou: {response.status_code} -> usando fallback")
+            
+        except Exception as e:
+            self.logger.warning(f"/me erro: {e} -> usando fallback")
+        
+        # 2. fallback OAuth sub via /v2/userinfo
+        try:
+            response = requests.get("https://api.linkedin.com/v2/userinfo", headers=headers)
             response.raise_for_status()
             
-            data = response.json()
-            member_id = data["id"]
+            sub = response.json().get("sub", "")
             
-            # Formato exigido pela UGC API: urn:li:member:{ID numérico}
-            person_urn = f"urn:li:member:{member_id}"
+            # Remove prefixos e limpa o ID
+            cleaned = sub.replace("l_", "").replace("urn:li:person:", "")
             
-            self.logger.info(f"Person URN correto: {person_urn}")
-            return person_urn
+            urn = f"urn:li:member:{cleaned}"
             
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"Erro ao buscar person URN: {e}")
-            raise
+            self.logger.info(f"URN via fallback: {urn}")
+            return urn
+            
+        except Exception as e:
+            self.logger.error("Falha total ao obter identidade")
+            raise RuntimeError("Não foi possível obter URN do usuário") from e
     
     def post_to_linkedin(self, post_data: Dict) -> Optional[str]:
         """
